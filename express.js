@@ -107,7 +107,39 @@ app.post("/api/login",function(req,res) {
 app.post("/api/profile/update",function(req,res){
 	res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
-	console.log(req.body.userdata);
+	var updateRec = JSON.parse(req.body.userdata);
+	var today = new Date();
+	var upadteQuery = 'update contact__c set FirstName = "'+ updateRec.fname 
+	                   +'", LastName = "'+ updateRec.lname 
+					   +'", Email = "'+ updateRec.email
+					   +'", Phone = "'+ updateRec.phone 
+					   +'", LastModifiedDate = "'+ today
+					   +'", Address = "'+ updateRec.address 
+					    +'" where Id ="' + updateRec.id +'"';
+	conn.query(upadteQuery,function(error,result){
+		if (error) {
+			res.json({
+				status:false,
+				message:'there are some error with profile update query'
+			})
+		  }else{
+			  var sqlquery = 'select * from contact__c where Id = "' + updateRec.id + '"';
+			  conn.query(sqlquery,function(err,records){
+						if (err) {
+							res.json({
+								status:false,
+								message:'there are some error with profile update data query'
+							})
+						} else {
+                             res.json({
+								status:true,
+								data:records[0],
+								message:'profile update sucessfully'
+							})
+						}
+				})
+		  }
+	});
 });
    
 app.get("/app",function(req,res){
