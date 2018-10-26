@@ -3,6 +3,8 @@ var mysql=require("my-sql");
 var bodyParser=require("body-parser");
 var uniqid = require('uniqid');
 var fileUpload = require('express-fileupload')
+var fs = require('fs');
+var path = require('path');
 var app=express();
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
@@ -17,10 +19,28 @@ var conn=mysql.createConnection({
 });
 conn.connect();
 
+app.use(function (req, res, next) {
+
+    // Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Request methods you wish to allow
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Request headers you wish to allow
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+
+    // Pass to next layer of middleware
+    next();
+});
+
+
 // signup
 app.post("/api/signup",function(req,res){
-	res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
 	var recored = JSON.parse(req.body.userdata);
 	var today = new Date();
 	var users={
@@ -75,8 +95,6 @@ app.post("/api/signup",function(req,res){
 
 // login
 app.post("/api/login",function(req,res) {
-	res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
 	var loginRec = JSON.parse(req.body.userdata);
    var sqlquery = 'select * from contact__c where User_Name = "' + loginRec.uname +'" and Password = '+ loginRec.pwd;
    conn.query(sqlquery ,function (error, results) {
@@ -105,8 +123,6 @@ app.post("/api/login",function(req,res) {
 
 // profile update
 app.post("/api/profile/update",function(req,res){
-	res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
 	var updateRec = JSON.parse(req.body.userdata);
 	var today = new Date();
 	var upadteQuery = 'update contact__c set FirstName = "'+ updateRec.fname 
@@ -141,7 +157,33 @@ app.post("/api/profile/update",function(req,res){
 		  }
 	});
 });
-   
+
+/** profile pic upload */
+app.post("/api/profile_pic/upload/:id",function(req,res){
+	let sampleFile = req.files.myImage;
+	let olduploadPath = __dirname + '/uploads/profile_img/' + sampleFile.name;
+	let newuploadPath = __dirname + '/uploads/profile_img/' + req.params.id + '.jpg';
+	if (fs.existsSync(newuploadPath)) {
+		fs.rename(olduploadPath, newuploadPath, function(err) {
+            if ( err ) {return;}
+       });
+	}
+
+	sampleFile.mv(newuploadPath, function(err) {
+	    if (err) {
+			res.json({
+				status:false,
+				message:'there are some error with profile photo upload'
+			})
+		} else {
+				res.json({
+					status:true,
+					message:'File uploaded!'
+			   })
+		}
+  });
+});
+
 app.get("/app",function(req,res){
 	conn.query("select * from example",function(err,records,fields){
 			res.send(records)
